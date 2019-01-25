@@ -1,0 +1,73 @@
+---
+title: "Benford's Law"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(oilabs)
+```
+
+
+
+# Benford's Law
+
+Benford's distribution:
+
+```{r}
+benford_p <- data.frame(1:9, log10(1 + 1/1:9))
+```
+
+```{r}
+data(iran)
+```
+
+
+# Elections
+## Iran, 2009
+### Exercise 1
+```{r}
+iran <- iran %>% mutate(first_digit = cut(get_first(ahmadinejad), breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), labels = c("1", "2", "3", "4", "5", "6", "7", "8", "9")))
+```
+
+### Exercise 2
+```{r}
+first_digit_bar <- ggplot(iran, aes(x = first_digit)) + geom_bar()
+first_digit_bar
+```
+
+### Exercise 3
+```{r}
+hilary <- filter(orprecinct, candidate == "Hillary Clinton / Tim Kaine")
+
+hilary <- hilary %>% mutate(first_digit = cut(get_first(votes), breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), labels = c("1", "2", "3", "4", "5", "6", "7", "8", "9")))
+
+hillary_first_digits <- hilary %>% ggplot(aes(x = first_digit)) + geom_bar()
+hillary_first_digits
+```
+
+### Exercise 4
+The general election in Oregon seem to fit better in Benford's law. There is no increase as the digit number increase.
+
+### Exercise 5
+```{r}
+n <- nrow(iran)
+iran_props <- iran %>% group_by(first_digit)
+iran_props <- iran_props %>% summarise(obs_prop = n()/n) %>% mutate(ben_prop = log10(1 + 1/1:9))
+iran_props
+```
+
+### Exercise 6
+```{r}
+obs <- pull(iran_props, obs_prop)
+ben <- pull(iran_props, ben_prop)
+sum((obs - ben)^2)
+```
+The statistic is the square of the distances between the observed proportions and benford proportions.
+
+
