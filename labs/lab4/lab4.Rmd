@@ -1,0 +1,89 @@
+---
+title: "Data Wrangling"
+output: html_notebook
+---
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(oilabs)
+library(lubridate)
+data(pnwflights)
+```
+
+### Exercise 1
+```{r}
+#dep_delay_hist <- ggplot(pnwflights, aes(x = dep_delay)) + geom_bar()
+hist(pnwflights$dep_delay, breaks = c(-100, 0, 5, 100, 200, 300, 400, 500, 2000), right = F)
+```
+The graph is skewed to the right the only mode interval t is 0 <= t < 5 of departure delay, which means most flight departs on time. Also a considerate amount of flights depart early.
+
+
+### Exercise 2
+```{r}
+pnwflights <- pnwflights %>% mutate(avg_speed = distance / air_time * 60)
+
+avg_speed_vs_distance_scatter <- ggplot(pnwflights, aes(y = avg_speed, x = distance)) + geom_point()
+avg_speed_vs_distance_scatter
+```
+
+
+### Exercise 3
+```{r}
+# proportion of flights from pdx
+n_origins <- nrow(pnwflights)
+pdxflights <- filter(pnwflights, origin == "PDX")
+n_pdx <- nrow(pdxflights)
+pdx_prop <- n_pdx / n_origins
+
+pop_dest <- pdxflights %>% group_by(dest)
+pop_dest <- pop_dest %>% summarise(times = n())
+pop_dest[order(pop_dest$times, decreasing = T), ]
+```
+
+As in the graph the most frequent destination from Portland is Los Angeles
+
+### Exercise 4
+```{r}
+delays <- pnwflights %>% group_by(carrier)
+delays <- summarise(delays, median = median(dep_delay, na.rm = T), IQR = IQR(dep_delay, na.rm = T))
+delays[order(delays$IQR),]
+```
+As in the dataframe, HA has the least variable departure delays.
+
+### Exercise 5
+```{r}
+best_flights <-
+pnwflights %>% filter(dest == "SFO", origin == "PDX") %>% 
+mutate(day_of_week = wday(ymd(paste(year, month, day, sep = "-")), label = T)) %>% 
+group_by(day_of_week) %>% 
+summarize(total_delay = mean(dep_delay + arr_delay, na.rm = T))
+best_flights[order(best_flights$total_delay),]
+```
+If we consider the least delay for flights as best, we should fly on Wednesday.
+
+### Exercise 6
+```{r}
+on_time_props <-
+pnwflights %>% mutate(on_time = dep_delay < 5) %>%
+  group_by(month) %>% 
+  summarize(on_time_prop = sum(on_time, na.rm = T) / n())
+on_time_props[order(on_time_props$on_time_prop, decreasing = T),]
+```
+
+### Exercise 7
+```{r}
+delay_vs_dist <-
+pnwflights %>% group_by(tailnum) %>% 
+summarize(avg_delay = mean(arr_delay), avg_dist = mean(distance), n = n()) %>%
+filter(n > 20, avg_dist < 2000)
+delay_vs_dist
+```
+
+```{r}
+dvd_plot <- delay_vs_dist %>% ggplot(aes(x = avg_dist, y = avg_delay, size = n)) + geom_point(alpha = .1)
+dvd_plot
+```
+
+
+
