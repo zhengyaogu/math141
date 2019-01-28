@@ -1,0 +1,111 @@
+---
+title: "Lab 6: The Building Blocks of Inference"
+output: html_notebook
+---
+
+### Exercise 1
+
+```{r}
+library(tidyverse)
+library(oilabs)
+library(infer)
+```
+
+```{r}
+data(promote)
+
+sum_promote <-
+promote %>% group_by(sex) %>%
+  summarize(promo_prop = sum(decision == "promote") / n())
+
+```
+
+$$H_0=$$ male and female has the same mean promotion rate
+
+```{r}
+null_promote <-
+promote  %>% 
+specify(response = decision, explanatory = sex, success = "promote") %>%
+hypothesize(decision ~ sex, null = "independence") %>%
+generate(rep = 10000, type = "permute") %>% 
+calculate(stat = "diff in props", order = c("male", "female"))
+
+null_promote %>% visualize()
+
+
+null_promote %>% get_p_value(0.2916667, "both")
+```
+
+### Exercise 2
+$$H_0=$$ 50% of millenials favor same-sex marriage
+
+```{r}
+data("millenials")
+millenials %>% 
+summarise(prop = sum(response == "favor") / n())
+```
+```{r}
+null_millenials <-
+millenials %>%
+specify(response = response, success = "favor") %>%
+hypothesize(null = "point", p = 0.5) %>%
+generate(rep = 10000, type = "simulate")%>%
+calculate(stat = "prop") 
+
+null_millenials %>% visualize()
+
+null_millenials %>% get_p_value(0.6666667, direction = "both")
+```
+
+### Exercise 3
+$$H_0=$$ Curry's score rate of long distance shots is 15%, quadruple the average of NBA players that season.
+```{r}
+data("curry")
+
+sum_curry <- curry %>% summarize(score_rate = sum(shot == "hit") / n())
+```
+
+```{r}
+null_curry <-
+  curry %>% 
+  specify(response = shot, success = "hit") %>%
+  hypothesize(null = "point", p = 0.3) %>%
+  generate(reps = 1000, type = "simulate") %>%
+  calculate(stat = "prop")
+
+null_curry %>% visualize()
+
+null_curry %>% get_p_value(0.48, "both")
+```
+
+### Exercise 4
+As shown above
+
+### Exercise 5
+All of the distributions generated share some similarities with a normal distribution. promote shows a symmetrical bell curve except for the center bin. millenial has an almost symmetrical distribution with tails, and curry shows a one-sidedly trimmed bell curve due to the constraint x >= 0.
+
+### Exercise 6
+```{r}
+data("survey141")
+
+survey141 <- survey141 %>% filter(computer == "Mac" | computer == "PC")
+```
+
+```{r}
+survey141 %>% group_by(coffee_tea) %>% summarize(mac_prop = sum(computer == "Mac") / n())
+```
+$$H_0=$$
+The preference to use mac is independent of one's preference to tea or coffee
+```{r}
+null_survey141 <- 
+  survey141 %>%
+  specify(response = computer, explanatory = coffee_tea, success = "Mac") %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in props", order = c("Tea", "Coffee"))
+
+null_survey141 %>% visualize()
+
+null_survey141 %>% get_p_value(0.6086957 - 0.6538462, direction = "less")
+```
+
